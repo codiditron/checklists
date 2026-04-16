@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>My Checklists</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fdf6ee; --blush: #f2c4b0; --rose: #d4846a; --deep: #2e1f1a;
+    --muted: #8c6a5e; --mint: #b8d8c8; --card: #fffaf6; --shadow: rgba(46,31,26,0.08);
+    --green: #4a8a6a; --green-bg: #f2fbf6; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--cream); font-family: 'DM Sans', sans-serif; color: var(--deep); min-height: 100vh; padding-bottom: 60px; }
+
+  header { background: var(--card); border-bottom: 1px solid var(--blush); padding: 20px 18px 14px; position: sticky; top: 0; z-index: 100; }
+  .eyebrow { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--rose); font-weight: 500; margin-bottom: 4px; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; }
+  header h1 em { font-style: italic; color: var(--rose); }
+  .tab-bar { display: flex; gap: 8px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab { flex-shrink: 0; padding: 7px 15px; border-radius: 20px; border: 1.5px solid var(--blush); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+  .tab.active { background: var(--rose); border-color: var(--rose); color: white; }
+
+  .content { padding: 16px; }
+
+  /* CARDS */
+  .checklist-card { background: var(--card); border-radius: var(--radius); border: 1.5px solid transparent; padding: 16px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 2px 10px var(--shadow); transition: transform 0.15s; -webkit-tap-highlight-color: transparent; }
+  .checklist-card:active { transform: scale(0.98); }
+  .checklist-card.complete { border-color: var(--mint); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; flex: 1; margin-right: 8px; }
+  .card-badge { display: inline-block; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; background: #f4ece7; color: var(--rose); padding: 3px 8px; border-radius: 10px; margin-top: 5px; font-weight: 500; }
+  .card-date { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .card-progress { margin-top: 10px; }
+  .progress-text { font-size: 11px; color: var(--muted); }
+  .progress-bar-bg { height: 3px; background: var(--blush); border-radius: 2px; overflow: hidden; margin-top: 5px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--rose), var(--blush)); border-radius: 2px; transition: width 0.4s; }
+  .progress-bar-fill.done { background: linear-gradient(90deg, var(--green), var(--mint)); }
+  .delete-btn { background: none; border: none; color: var(--blush); font-size: 16px; cursor: pointer; padding: 2px 4px; -webkit-tap-highlight-color: transparent; transition: color 0.2s; }
+  .delete-btn:active { color: var(--rose); }
+
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 44px; margin-bottom: 12px; }
+  .empty-state h2 { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--deep); }
+  .empty-state p { font-size: 13px; margin-top: 6px; line-height: 1.6; }
+
+  /* DETAIL */
+  .detail-header { background: var(--card); border-bottom: 1px solid var(--blush); padding: 16px 16px 14px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; }
+  .back-btn { background: #f4ece7; border: none; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; color: var(--rose); flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+  .detail-title-wrap { flex: 1; }
+  .detail-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; }
+  .detail-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .summary-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--green-bg); border-bottom: 1px solid var(--mint); }
+  .summary-bar .count { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600; color: var(--rose); }
+  .progress-wrap { flex: 1; }
+  .progress-wrap .s-label { font-size: 13px; color: var(--muted); }
+  .progress-wrap .s-done { font-size: 12px; color: var(--green); }
+  .progress-wrap .bar-bg { height: 3px; background: var(--blush); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-wrap .bar-fill { height: 100%; background: linear-gradient(90deg, var(--rose), var(--blush)); border-radius: 2px; transition: width 0.4s; }
+  .progress-wrap .bar-fill.done { background: linear-gradient(90deg, var(--green), var(--mint)); }
+  .section { padding: 16px 16px 0; }
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .section-icon { font-size: 15px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; }
+  .section-line { flex: 1; height: 1px; background: var(--blush); }
+  .step-card { background: var(--card); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 11px; cursor: pointer; border: 1.5px solid transparent; box-shadow: 0 2px 8px var(--shadow); transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+  .step-card:active { transform: scale(0.98); }
+  .step-card.checked { border-color: var(--mint); background: var(--green-bg); }
+  .step-num { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--blush); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: var(--muted); flex-shrink: 0; transition: all 0.2s; margin-top: 1px; }
+  .step-card.checked .step-num { background: var(--mint); border-color: var(--mint); color: var(--green); font-size: 12px; }
+  .step-name { font-size: 14px; font-weight: 500; transition: all 0.2s; }
+  .step-card.checked .step-name { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--mint); }
+  .step-note { font-size: 11px; color: var(--rose); font-style: italic; margin-top: 3px; }
+  .all-done { text-align: center; padding: 28px 20px; margin: 16px 16px 0; background: linear-gradient(135deg, #f9f0e8, #fdf6ee); border-radius: 20px; border: 1.5px solid var(--blush); display: none; }
+  .all-done.visible { display: block; animation: popIn 0.4s ease both; }
+  .all-done .emoji { font-size: 34px; margin-bottom: 8px; }
+  .all-done h3 { font-family: 'Playfair Display', serif; font-size: 18px; margin-bottom: 4px; }
+  .all-done p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .reset-btn { display: block; width: calc(100% - 32px); margin: 16px 16px 0; padding: 13px; border-radius: var(--radius); border: 1.5px solid var(--blush); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+  .reset-btn:active { background: var(--blush); }
+
+  /* IMPORT */
+  .import-section-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; color: var(--deep); margin: 4px 0 14px; }
+  .import-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; }
+  .import-divider span { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+  .import-divider::before, .import-divider::after { content: ''; flex: 1; height: 1px; background: var(--blush); }
+
+  /* FILE UPLOAD ZONE */
+  .upload-zone { background: var(--card); border: 2px dashed var(--blush); border-radius: var(--radius); padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; box-shadow: 0 2px 8px var(--shadow); -webkit-tap-highlight-color: transparent; }
+  .upload-zone:active, .upload-zone.dragover { border-color: var(--rose); background: #fef3ed; }
+  .upload-zone .upload-icon { font-size: 32px; margin-bottom: 10px; }
+  .upload-zone h3 { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--deep); margin-bottom: 4px; }
+  .upload-zone p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  .import-box { background: var(--card); border-radius: var(--radius); border: 1.5px solid var(--blush); padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px var(--shadow); }
+  .import-box label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--rose); font-weight: 500; display: block; margin-bottom: 10px; }
+  .import-box input[type="text"], .import-box textarea { width: 100%; background: var(--cream); border: 1px solid var(--blush); border-radius: 10px; padding: 11px 12px; font-size: 15px; color: var(--deep); font-family: 'DM Sans', sans-serif; outline: none; -webkit-appearance: none; }
+  .import-box input[type="text"]:focus, .import-box textarea:focus { border-color: var(--rose); }
+  .import-box textarea { resize: none; min-height: 160px; line-height: 1.6; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; font-style: italic; }
+  .import-btn { width: 100%; background: var(--rose); color: white; border: none; border-radius: var(--radius); padding: 14px; font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: opacity 0.2s; -webkit-tap-highlight-color: transparent; }
+  .import-btn:active { opacity: 0.85; }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--deep); color: var(--cream); padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 500; transition: transform 0.3s; z-index: 999; white-space: nowrap; pointer-events: none; font-family: 'DM Sans', sans-serif; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .hidden { display: none; }
+
+  @keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+</style>
+</head>
+<body>
+
+<header id="main-header">
+  <div class="eyebrow">My Lists</div>
+  <h1>Checklist <em>Tracker</em></h1>
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('lists')">All Lists</button>
+    <button class="tab" onclick="showTab('import')">+ Add Checklist</button>
+  </div>
+</header>
+
+<!-- LIST VIEW -->
+<div id="view-lists" class="content"></div>
+
+<!-- IMPORT VIEW -->
+<div id="view-import" class="content hidden">
+
+  <p class="import-section-title">Upload a file from Claude</p>
+
+  <!-- FILE UPLOAD ZONE -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" accept=".html,.htm,.txt" id="fileInput" onchange="handleFileUpload(this)" />
+    <div class="upload-icon">🌿</div>
+    <h3>Tap to upload a file</h3>
+    <p>Upload any .html or .txt checklist<br>Claude made for you</p>
+  </div>
+
+  <div class="import-divider"><span>or paste text</span></div>
+
+  <p class="import-section-title">Paste from Claude chat</p>
+
+  <div class="import-box">
+    <label>List title</label>
+    <input type="text" id="import-title" placeholder="e.g. Morning Routine, Grocery List…" />
+  </div>
+  <div class="import-box">
+    <label>Paste your checklist</label>
+    <textarea id="import-text" placeholder="- Item one&#10;- Item two&#10;- Item three&#10;&#10;(or numbered, or plain lines)"></textarea>
+    <p class="hint">Copy the list directly from Claude chat and paste it above.</p>
+  </div>
+  <button class="import-btn" onclick="importPasted()">Save Checklist ✦</button>
+</div>
+
+<!-- DETAIL VIEW -->
+<div id="view-detail" class="hidden">
+  <div class="detail-header">
+    <button class="back-btn" onclick="showTab('lists')">&#8592;</button>
+    <div class="detail-title-wrap">
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-subtitle" id="detail-subtitle"></div>
+    </div>
+  </div>
+  <div class="summary-bar">
+    <div class="count" id="detail-count">0</div>
+    <div class="progress-wrap">
+      <div class="s-label" id="detail-left-label">items left</div>
+      <div class="s-done" id="detail-done-label"></div>
+      <div class="bar-bg"><div class="bar-fill" id="detail-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div id="detail-sections"></div>
+  <div class="all-done" id="all-done-msg">
+    <div class="emoji">✨</div>
+    <h3>All done!</h3>
+    <p>Consistency is the whole game — see you next time.</p>
+  </div>
+  <button class="reset-btn" onclick="resetList()">↺ Reset checklist</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Pre-loaded skincare ───────────────────────────────────────────────────
+  const SKINCARE_ID = 'preloaded_skincare';
+  const skincareDefault = {
+    id: SKINCARE_ID, title: 'My Skincare Routine', date: 'Pre-loaded', preloaded: true,
+    sections: [
+      { title: 'Morning', icon: '🌅', items: [
+        { text: 'Rinse with lukewarm water', note: 'No cleanser in AM — hot water = eczema trigger ⚠️' },
+        { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in with hands, don\'t wipe' },
+        { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — apply to slightly damp skin' },
+        { text: 'Omega Water Cream', note: 'The INKEY List — more on dry/eczema patches' },
+        { text: 'Zero-Cast Sunscreen SPF 50', note: 'ANUA — apply generously!' },
+        { text: 'Yerba Mate Eye Gel', note: 'Good Molecules — pat gently with ring finger' },
+      ].map(i => ({...i, checked: false})) },
+      { title: 'Evening', icon: '🌙', items: [
+        { text: 'Clarify & Cleanse Bar', note: 'Good Molecules — lukewarm water, no scrubbing' },
+        { text: 'Snail Mucin Cleanser (if wore SPF/makeup)', note: 'COSRX — 2nd cleanse only if needed' },
+        { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in gently' },
+        { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — pat on damp skin' },
+        { text: 'Omega Water Cream', note: 'The INKEY List — be generous at night, skin repairs while you sleep' },
+      ].map(i => ({...i, checked: false})) }
+    ]
+  };
+
+  // ── Storage ───────────────────────────────────────────────────────────────
+  let lists = JSON.parse(localStorage.getItem('checklists_v3') || '[]');
+  if (!lists.find(l => l.id === SKINCARE_ID)) { lists.unshift(JSON.parse(JSON.stringify(skincareDefault))); save(); }
+  let currentId = null;
+
+  function save() { localStorage.setItem('checklists_v3', JSON.stringify(lists)); }
+  function getList(id) { return lists.find(l => l.id === id); }
+
+  function getProgress(list) {
+    const all = list.sections ? list.sections.flatMap(s => s.items) : (list.items || []);
+    return { done: all.filter(i => i.checked).length, total: all.length };
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  function showTab(tab) {
+    ['view-lists','view-import','view-detail'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById('main-header').classList.remove('hidden');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    if (tab === 'lists') {
+      document.getElementById('view-lists').classList.remove('hidden');
+      document.querySelectorAll('.tab')[0].classList.add('active');
+      renderLists();
+    } else if (tab === 'import') {
+      document.getElementById('view-import').classList.remove('hidden');
+      document.querySelectorAll('.tab')[1].classList.add('active');
+    } else if (tab === 'detail') {
+      document.getElementById('view-detail').classList.remove('hidden');
+      document.getElementById('main-header').classList.add('hidden');
+      renderDetail();
+    }
+  }
+
+  // ── List View ─────────────────────────────────────────────────────────────
+  function renderLists() {
+    const el = document.getElementById('view-lists');
+    if (!lists.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">🌿</div><h2>No lists yet</h2><p>Tap <strong>+ Add Checklist</strong> to get started.</p></div>`;
+      return;
+    }
+    el.innerHTML = lists.map(list => {
+      const { done, total } = getProgress(list);
+      const pct = total ? Math.round((done/total)*100) : 0, isDone = done===total && total>0;
+      return `<div class="checklist-card${isDone?' complete':''}" onclick="openList('${list.id}')">
+        <div class="card-top">
+          <div>
+            <div class="card-title">${escHtml(list.title)}</div>
+            ${list.preloaded ? '<span class="card-badge">✦ pre-loaded</span>' : ''}
+          </div>
+          ${list.preloaded ? '' : `<button class="delete-btn" onclick="event.stopPropagation();deleteList('${list.id}')">&#10005;</button>`}
+        </div>
+        <div class="card-date">${list.date}</div>
+        <div class="card-progress">
+          <div class="progress-text">${done} of ${total} done${isDone?' ✓':''}</div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill${isDone?' done':''}" style="width:${pct}%"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function openList(id) { currentId = id; showTab('detail'); }
+
+  function deleteList(id) {
+    if (!confirm('Delete "' + getList(id).title + '"?')) return;
+    lists = lists.filter(l => l.id !== id); save(); renderLists(); toast('Deleted');
+  }
+
+  // ── Detail View ───────────────────────────────────────────────────────────
+  function renderDetail() {
+    const list = getList(currentId); if (!list) return;
+    const { done, total } = getProgress(list);
+    const left = total - done, pct = total ? Math.round((done/total)*100) : 0, isDone = done===total&&total>0;
+    document.getElementById('detail-title').textContent = list.title;
+    document.getElementById('detail-subtitle').textContent = list.date + ' · ' + total + ' items';
+    document.getElementById('detail-count').textContent = left;
+    document.getElementById('detail-left-label').textContent = left===1 ? 'item left' : 'items left';
+    document.getElementById('detail-done-label').textContent = done + ' completed';
+    document.getElementById('detail-bar').style.width = pct + '%';
+    document.getElementById('detail-bar').className = 'bar-fill' + (isDone?' done':'');
+    document.getElementById('all-done-msg').className = 'all-done' + (isDone?' visible':'');
+
+    const sectionsEl = document.getElementById('detail-sections');
+    if (list.sections) {
+      sectionsEl.innerHTML = list.sections.map((sec, si) => `
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">${sec.icon||'•'}</span>
+            <span class="section-title">${escHtml(sec.title)}</span>
+            <div class="section-line"></div>
+          </div>
+          ${sec.items.map((item, ii) => `
+            <div class="step-card${item.checked?' checked':''}" onclick="toggleSec(${si},${ii})">
+              <div class="step-num">${item.checked?'✓':ii+1}</div>
+              <div>
+                <div class="step-name">${escHtml(item.text)}</div>
+                ${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}
+              </div>
+            </div>`).join('')}
+        </div>`).join('');
+    } else {
+      sectionsEl.innerHTML = `<div class="section">${(list.items||[]).map((item,i)=>`
+        <div class="step-card${item.checked?' checked':''}" onclick="toggleItem(${i})">
+          <div class="step-num">${item.checked?'✓':i+1}</div>
+          <div class="step-name">${escHtml(item.text)}</div>
+        </div>`).join('')}</div>`;
+    }
+  }
+
+  function toggleSec(si, ii) { const l=getList(currentId); l.sections[si].items[ii].checked=!l.sections[si].items[ii].checked; save(); renderDetail(); }
+  function toggleItem(i) { const l=getList(currentId); l.items[i].checked=!l.items[i].checked; save(); renderDetail(); }
+  function resetList() {
+    const l=getList(currentId);
+    if (l.sections) l.sections.forEach(s=>s.items.forEach(it=>it.checked=false));
+    else (l.items||[]).forEach(it=>it.checked=false);
+    save(); renderDetail(); toast('Checklist reset');
+  }
+
+  // ── File Upload ───────────────────────────────────────────────────────────
+  function handleFileUpload(input) {
+    const file = input.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const content = e.target.result;
+      const ext = file.name.split('.').pop().toLowerCase();
+      let items = [];
+      let title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g,' ');
+
+      if (ext === 'html' || ext === 'htm') {
+        // Parse HTML: try to extract list items, then fall back to text content
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, 'text/html');
+
+        // Try to grab title from <title> tag
+        const titleTag = doc.querySelector('title');
+        if (titleTag && titleTag.textContent.trim()) title = titleTag.textContent.trim();
+
+        // Extract checklist items from common patterns used in Claude-generated checklists
+        // 1. Look for step-name / item-name divs
+        const stepNames = doc.querySelectorAll('.step-name, .item-label, .item-name, .step-label');
+        if (stepNames.length > 0) {
+          items = Array.from(stepNames).map(el => ({ text: el.textContent.trim(), checked: false })).filter(i => i.text);
+        }
+
+        // 2. Look for li elements
+        if (!items.length) {
+          const lis = doc.querySelectorAll('li');
+          if (lis.length > 0) items = Array.from(lis).map(el => ({ text: el.textContent.trim(), checked: false })).filter(i => i.text);
+        }
+
+        // 3. Fall back to extracting visible text lines
+        if (!items.length) {
+          const body = doc.body ? doc.body.innerText || doc.body.textContent : content;
+          items = parseLines(body);
+        }
+
+        // Special case: detect Claude skincare-style HTML with sections
+        const amSection = doc.querySelector('.section');
+        if (amSection) {
+          // Try to rebuild sections
+          const sections = doc.querySelectorAll('.section');
+          if (sections.length > 0) {
+            const builtSections = Array.from(sections).map(sec => {
+              const secTitle = sec.querySelector('.section-title');
+              const secIcon = sec.querySelector('.section-icon');
+              const steps = sec.querySelectorAll('.step-name, .item-label');
+              const notes = sec.querySelectorAll('.step-product, .step-note, .step-tip');
+              return {
+                title: secTitle ? secTitle.textContent.trim() : 'Steps',
+                icon: secIcon ? secIcon.textContent.trim() : '•',
+                items: Array.from(steps).map((s, i) => ({
+                  text: s.textContent.trim(),
+                  note: notes[i] ? notes[i].textContent.trim() : '',
+                  checked: false
+                })).filter(i => i.text)
+              };
+            }).filter(s => s.items.length > 0);
+
+            if (builtSections.length > 0) {
+              addList({ title, sections: builtSections }); input.value=''; return;
+            }
+          }
+        }
+      } else {
+        // Plain text
+        items = parseLines(content);
+      }
+
+      if (!items.length) { toast('Could not find any items in this file'); input.value=''; return; }
+      addList({ title, items });
+      input.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  // ── Paste Import ──────────────────────────────────────────────────────────
+  function importPasted() {
+    const title = document.getElementById('import-title').value.trim();
+    const text = document.getElementById('import-text').value.trim();
+    if (!title) { toast('Please add a title'); return; }
+    if (!text) { toast('Please paste some checklist text'); return; }
+    const items = parseLines(text);
+    if (!items.length) { toast('Could not find any items'); return; }
+    addList({ title, items });
+    document.getElementById('import-title').value = '';
+    document.getElementById('import-text').value = '';
+  }
+
+  function addList(data) {
+    const date = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    lists.push({ id: 'list_'+Date.now(), date, ...data });
+    save();
+    const count = data.sections ? data.sections.flatMap(s=>s.items).length : (data.items||[]).length;
+    toast('Saved ' + count + ' items!');
+    setTimeout(() => showTab('lists'), 700);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function parseLines(text) {
+    return text.split('\n').map(l=>l.trim()).filter(l=>l.length>0).map(l=>{
+      l=l.replace(/^-\s*\[[ xX]\]\s*/,'').replace(/^\[[ xX]\]\s*/,'')
+         .replace(/^[\-\*\•]\s+/,'').replace(/^\d+[\.\)]\s+/,'').replace(/^#+\s*/,'');
+      return l.trim();
+    }).filter(l=>l.length>0&&l.length<400).map(text=>({text,checked:false}));
+  }
+
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function toast(msg) {
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),2400);
+  }
+
+  // Drag and drop support
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0]; if (!file) return;
+    const fakeInput = { files: [file], value: '' };
+    handleFileUpload(fakeInput);
+  });
+
+  renderLists();
+</script>
+</body>
+</html>
