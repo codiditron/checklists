@@ -22,7 +22,6 @@
   .tab-bar::-webkit-scrollbar { display: none; }
   .tab { flex-shrink: 0; padding: 7px 15px; border-radius: 20px; border: 1.5px solid var(--blush); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
   .tab.active { background: var(--rose); border-color: var(--rose); color: white; }
-
   .content { padding: 16px; }
 
   /* CARDS */
@@ -40,7 +39,6 @@
   .progress-bar-fill.done { background: linear-gradient(90deg, var(--green), var(--mint)); }
   .delete-btn { background: none; border: none; color: var(--blush); font-size: 16px; cursor: pointer; padding: 2px 4px; -webkit-tap-highlight-color: transparent; transition: color 0.2s; }
   .delete-btn:active { color: var(--rose); }
-
   .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
   .empty-state .icon { font-size: 44px; margin-bottom: 12px; }
   .empty-state h2 { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--deep); }
@@ -52,6 +50,21 @@
   .detail-title-wrap { flex: 1; }
   .detail-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; }
   .detail-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* DAY NAV */
+  .day-nav-wrap { background: var(--card); border-bottom: 1px solid var(--blush); padding: 12px 16px; }
+  .day-nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .day-nav::-webkit-scrollbar { display: none; }
+  .day-btn { flex-shrink: 0; width: 40px; height: 52px; border-radius: 12px; border: 1.5px solid var(--blush); background: transparent; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; -webkit-tap-highlight-color: transparent; }
+  .day-btn .day-label { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .day-btn .day-dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+  .day-btn.active { background: var(--rose); border-color: var(--rose); }
+  .day-btn.active .day-label { color: white; }
+  .day-btn.complete { border-color: var(--mint); }
+  .day-btn.complete .day-dot { background: var(--green); }
+  .day-btn.complete.active { background: var(--green); border-color: var(--green); }
+  .day-btn.complete.active .day-label { color: white; }
+
   .summary-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--green-bg); border-bottom: 1px solid var(--mint); }
   .summary-bar .count { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600; color: var(--rose); }
   .progress-wrap { flex: 1; }
@@ -86,15 +99,12 @@
   .import-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; }
   .import-divider span { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
   .import-divider::before, .import-divider::after { content: ''; flex: 1; height: 1px; background: var(--blush); }
-
-  /* FILE UPLOAD ZONE */
   .upload-zone { background: var(--card); border: 2px dashed var(--blush); border-radius: var(--radius); padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; box-shadow: 0 2px 8px var(--shadow); -webkit-tap-highlight-color: transparent; }
   .upload-zone:active, .upload-zone.dragover { border-color: var(--rose); background: #fef3ed; }
   .upload-zone .upload-icon { font-size: 32px; margin-bottom: 10px; }
   .upload-zone h3 { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--deep); margin-bottom: 4px; }
   .upload-zone p { font-size: 12px; color: var(--muted); line-height: 1.5; }
   .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-
   .import-box { background: var(--card); border-radius: var(--radius); border: 1.5px solid var(--blush); padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px var(--shadow); }
   .import-box label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--rose); font-weight: 500; display: block; margin-bottom: 10px; }
   .import-box input[type="text"], .import-box textarea { width: 100%; background: var(--cream); border: 1px solid var(--blush); border-radius: 10px; padding: 11px 12px; font-size: 15px; color: var(--deep); font-family: 'DM Sans', sans-serif; outline: none; -webkit-appearance: none; }
@@ -107,7 +117,6 @@
   .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--deep); color: var(--cream); padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 500; transition: transform 0.3s; z-index: 999; white-space: nowrap; pointer-events: none; font-family: 'DM Sans', sans-serif; }
   .toast.show { transform: translateX(-50%) translateY(0); }
   .hidden { display: none; }
-
   @keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
 </style>
 </head>
@@ -127,34 +136,28 @@
 
 <!-- IMPORT VIEW -->
 <div id="view-import" class="content hidden">
-
   <p class="import-section-title">Upload a file from Claude</p>
-
-  <!-- FILE UPLOAD ZONE -->
   <div class="upload-zone" id="uploadZone">
     <input type="file" accept=".html,.htm,.txt" id="fileInput" onchange="handleFileUpload(this)" />
     <div class="upload-icon">🌿</div>
     <h3>Tap to upload a file</h3>
     <p>Upload any .html or .txt checklist<br>Claude made for you</p>
   </div>
-
   <div class="import-divider"><span>or paste text</span></div>
-
   <p class="import-section-title">Paste from Claude chat</p>
-
   <div class="import-box">
     <label>List title</label>
     <input type="text" id="import-title" placeholder="e.g. Morning Routine, Grocery List…" />
   </div>
   <div class="import-box">
     <label>Paste your checklist</label>
-    <textarea id="import-text" placeholder="- Item one&#10;- Item two&#10;- Item three&#10;&#10;(or numbered, or plain lines)"></textarea>
+    <textarea id="import-text" placeholder="- Item one&#10;- Item two&#10;- Item three"></textarea>
     <p class="hint">Copy the list directly from Claude chat and paste it above.</p>
   </div>
   <button class="import-btn" onclick="importPasted()">Save Checklist ✦</button>
 </div>
 
-<!-- DETAIL VIEW -->
+<!-- DETAIL VIEW (regular lists) -->
 <div id="view-detail" class="hidden">
   <div class="detail-header">
     <button class="back-btn" onclick="showTab('lists')">&#8592;</button>
@@ -180,48 +183,85 @@
   <button class="reset-btn" onclick="resetList()">↺ Reset checklist</button>
 </div>
 
+<!-- SKINCARE DETAIL VIEW (with day tracker) -->
+<div id="view-skincare" class="hidden">
+  <div class="detail-header">
+    <button class="back-btn" onclick="showTab('lists')">&#8592;</button>
+    <div class="detail-title-wrap">
+      <div class="detail-title">My Skincare Routine</div>
+      <div class="detail-subtitle" id="skin-subtitle"></div>
+    </div>
+  </div>
+  <div class="day-nav-wrap">
+    <div class="day-nav" id="dayNav"></div>
+  </div>
+  <div class="summary-bar">
+    <div class="count" id="skin-count">0</div>
+    <div class="progress-wrap">
+      <div class="s-label" id="skin-left-label">items left</div>
+      <div class="s-done" id="skin-done-label"></div>
+      <div class="bar-bg"><div class="bar-fill" id="skin-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div id="skin-sections"></div>
+  <div class="all-done" id="skin-done-msg">
+    <div class="emoji">✨</div>
+    <h3>Full day done!</h3>
+    <p>Your skin thanks you. Consistency is the whole game — see you tomorrow.</p>
+  </div>
+  <button class="reset-btn" onclick="resetSkinDay()">↺ Reset today</button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── Pre-loaded skincare ───────────────────────────────────────────────────
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const SKINCARE_ID = 'preloaded_skincare';
-  const skincareDefault = {
-    id: SKINCARE_ID, title: 'My Skincare Routine', date: 'Pre-loaded', preloaded: true,
-    sections: [
-      { title: 'Morning', icon: '🌅', items: [
-        { text: 'Rinse with lukewarm water', note: 'No cleanser in AM — hot water = eczema trigger ⚠️' },
-        { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in with hands, don\'t wipe' },
-        { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — apply to slightly damp skin' },
-        { text: 'Omega Water Cream', note: 'The INKEY List — more on dry/eczema patches' },
-        { text: 'Zero-Cast Sunscreen SPF 50', note: 'ANUA — apply generously!' },
-        { text: 'Yerba Mate Eye Gel', note: 'Good Molecules — pat gently with ring finger' },
-      ].map(i => ({...i, checked: false})) },
-      { title: 'Evening', icon: '🌙', items: [
-        { text: 'Clarify & Cleanse Bar', note: 'Good Molecules — lukewarm water, no scrubbing' },
-        { text: 'Snail Mucin Cleanser (if wore SPF/makeup)', note: 'COSRX — 2nd cleanse only if needed' },
-        { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in gently' },
-        { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — pat on damp skin' },
-        { text: 'Omega Water Cream', note: 'The INKEY List — be generous at night, skin repairs while you sleep' },
-      ].map(i => ({...i, checked: false})) }
-    ]
-  };
 
-  // ── Storage ───────────────────────────────────────────────────────────────
-  let lists = JSON.parse(localStorage.getItem('checklists_v3') || '[]');
-  if (!lists.find(l => l.id === SKINCARE_ID)) { lists.unshift(JSON.parse(JSON.stringify(skincareDefault))); save(); }
+  const MORNING = [
+    { text: 'Rinse with lukewarm water', note: 'No cleanser in AM — hot water = eczema trigger ⚠️' },
+    { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in with hands, don\'t wipe' },
+    { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — apply to slightly damp skin' },
+    { text: 'Omega Water Cream', note: 'The INKEY List — more on dry/eczema patches' },
+    { text: 'Zero-Cast Sunscreen SPF 50', note: 'ANUA — apply generously!' },
+    { text: 'Yerba Mate Eye Gel', note: 'Good Molecules — pat gently with ring finger' },
+  ];
+  const EVENING = [
+    { text: 'Clarify & Cleanse Bar', note: 'Good Molecules — lukewarm water, no scrubbing' },
+    { text: 'Snail Mucin Cleanser (if wore SPF/makeup)', note: 'COSRX — 2nd cleanse only if needed' },
+    { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in gently' },
+    { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — pat on damp skin' },
+    { text: 'Omega Water Cream', note: 'The INKEY List — be generous at night, skin repairs while you sleep' },
+  ];
+  const TOTAL = MORNING.length + EVENING.length;
+
+  // skinState: { 0: { am: [bool,...], pm: [bool,...] }, ... } keyed by day index 0=Mon
+  let skinState = JSON.parse(localStorage.getItem('skinState_v1') || '{}');
+  function getSkinDay(d) {
+    if (!skinState[d]) skinState[d] = { am: new Array(MORNING.length).fill(false), pm: new Array(EVENING.length).fill(false) };
+    return skinState[d];
+  }
+  function saveSkin() { localStorage.setItem('skinState_v1', JSON.stringify(skinState)); }
+
+  // Today's day index (0=Mon)
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  let currentSkinDay = todayIdx;
+
+  // ── Regular lists ─────────────────────────────────────────────────────────
+  let lists = JSON.parse(localStorage.getItem('checklists_v4') || '[]');
+  // Ensure skincare placeholder in lists for card display
+  if (!lists.find(l => l.id === SKINCARE_ID)) {
+    lists.unshift({ id: SKINCARE_ID, title: 'My Skincare Routine', date: 'Pre-loaded', preloaded: true, skincare: true });
+    saveLists();
+  }
   let currentId = null;
 
-  function save() { localStorage.setItem('checklists_v3', JSON.stringify(lists)); }
+  function saveLists() { localStorage.setItem('checklists_v4', JSON.stringify(lists)); }
   function getList(id) { return lists.find(l => l.id === id); }
-
-  function getProgress(list) {
-    const all = list.sections ? list.sections.flatMap(s => s.items) : (list.items || []);
-    return { done: all.filter(i => i.checked).length, total: all.length };
-  }
 
   // ── Navigation ────────────────────────────────────────────────────────────
   function showTab(tab) {
-    ['view-lists','view-import','view-detail'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    ['view-lists','view-import','view-detail','view-skincare'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('main-header').classList.remove('hidden');
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     if (tab === 'lists') {
@@ -235,19 +275,39 @@
       document.getElementById('view-detail').classList.remove('hidden');
       document.getElementById('main-header').classList.add('hidden');
       renderDetail();
+    } else if (tab === 'skincare') {
+      document.getElementById('view-skincare').classList.remove('hidden');
+      document.getElementById('main-header').classList.add('hidden');
+      renderSkincare();
     }
   }
 
   // ── List View ─────────────────────────────────────────────────────────────
+  function getSkinProgress() {
+    let done = 0;
+    for (let d = 0; d < 7; d++) { const s = getSkinDay(d); done += s.am.filter(Boolean).length + s.pm.filter(Boolean).length; }
+    return { done, total: TOTAL * 7 };
+  }
+
+  function getTodaySkinProgress() {
+    const s = getSkinDay(todayIdx);
+    const done = s.am.filter(Boolean).length + s.pm.filter(Boolean).length;
+    return { done, total: TOTAL };
+  }
+
+  function getProgress(list) {
+    if (list.skincare) return getTodaySkinProgress();
+    const all = list.sections ? list.sections.flatMap(s => s.items) : (list.items || []);
+    return { done: all.filter(i => i.checked).length, total: all.length };
+  }
+
   function renderLists() {
     const el = document.getElementById('view-lists');
-    if (!lists.length) {
-      el.innerHTML = `<div class="empty-state"><div class="icon">🌿</div><h2>No lists yet</h2><p>Tap <strong>+ Add Checklist</strong> to get started.</p></div>`;
-      return;
-    }
+    if (!lists.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🌿</div><h2>No lists yet</h2><p>Tap <strong>+ Add Checklist</strong> to get started.</p></div>`; return; }
     el.innerHTML = lists.map(list => {
       const { done, total } = getProgress(list);
       const pct = total ? Math.round((done/total)*100) : 0, isDone = done===total && total>0;
+      const subtitle = list.skincare ? `Today: ${done} of ${total} steps done` : `${done} of ${total} done${isDone?' ✓':''}`;
       return `<div class="checklist-card${isDone?' complete':''}" onclick="openList('${list.id}')">
         <div class="card-top">
           <div>
@@ -258,50 +318,118 @@
         </div>
         <div class="card-date">${list.date}</div>
         <div class="card-progress">
-          <div class="progress-text">${done} of ${total} done${isDone?' ✓':''}</div>
+          <div class="progress-text">${subtitle}</div>
           <div class="progress-bar-bg"><div class="progress-bar-fill${isDone?' done':''}" style="width:${pct}%"></div></div>
         </div>
       </div>`;
     }).join('');
   }
 
-  function openList(id) { currentId = id; showTab('detail'); }
+  function openList(id) {
+    currentId = id;
+    const list = getList(id);
+    if (list && list.skincare) { showTab('skincare'); } else { showTab('detail'); }
+  }
 
   function deleteList(id) {
     if (!confirm('Delete "' + getList(id).title + '"?')) return;
-    lists = lists.filter(l => l.id !== id); save(); renderLists(); toast('Deleted');
+    lists = lists.filter(l => l.id !== id); saveLists(); renderLists(); toast('Deleted');
   }
 
-  // ── Detail View ───────────────────────────────────────────────────────────
+  // ── Skincare Day Tracker ──────────────────────────────────────────────────
+  function renderSkincare() {
+    renderDayNav();
+    renderSkinSummary();
+    renderSkinSections();
+  }
+
+  function renderDayNav() {
+    const nav = document.getElementById('dayNav');
+    nav.innerHTML = DAYS.map((d, i) => {
+      const s = getSkinDay(i);
+      const done = s.am.filter(Boolean).length + s.pm.filter(Boolean).length;
+      const isComplete = done === TOTAL;
+      const isActive = i === currentSkinDay;
+      const isToday = i === todayIdx;
+      return `<button class="day-btn${isActive?' active':''}${isComplete?' complete':''}" onclick="selectSkinDay(${i})">
+        <span class="day-label">${d}</span>
+        ${isToday && !isActive ? '<span style="font-size:7px;color:var(--rose)">●</span>' : '<span class="day-dot"></span>'}
+      </button>`;
+    }).join('');
+    document.getElementById('skin-subtitle').textContent = DAYS[currentSkinDay] + (currentSkinDay === todayIdx ? ' — Today' : '');
+  }
+
+  function renderSkinSummary() {
+    const s = getSkinDay(currentSkinDay);
+    const done = s.am.filter(Boolean).length + s.pm.filter(Boolean).length;
+    const left = TOTAL - done, pct = Math.round((done/TOTAL)*100), isDone = done === TOTAL;
+    document.getElementById('skin-count').textContent = left;
+    document.getElementById('skin-left-label').textContent = left === 1 ? 'step left' : 'steps left';
+    document.getElementById('skin-done-label').textContent = done + ' completed';
+    document.getElementById('skin-bar').style.width = pct + '%';
+    document.getElementById('skin-bar').className = 'bar-fill' + (isDone ? ' done' : '');
+    document.getElementById('skin-done-msg').className = 'all-done' + (isDone ? ' visible' : '');
+  }
+
+  function renderSkinSections() {
+    const s = getSkinDay(currentSkinDay);
+    document.getElementById('skin-sections').innerHTML = [
+      { title: 'Morning', icon: '🌅', items: MORNING, state: s.am, period: 'am' },
+      { title: 'Evening', icon: '🌙', items: EVENING, state: s.pm, period: 'pm' }
+    ].map(sec => `
+      <div class="section">
+        <div class="section-header">
+          <span class="section-icon">${sec.icon}</span>
+          <span class="section-title">${sec.title}</span>
+          <div class="section-line"></div>
+        </div>
+        ${sec.items.map((item, i) => `
+          <div class="step-card${sec.state[i]?' checked':''}" onclick="toggleSkinItem('${sec.period}',${i})">
+            <div class="step-num">${sec.state[i]?'✓':i+1}</div>
+            <div>
+              <div class="step-name">${escHtml(item.text)}</div>
+              ${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}
+            </div>
+          </div>`).join('')}
+      </div>`).join('');
+  }
+
+  function toggleSkinItem(period, i) {
+    const s = getSkinDay(currentSkinDay);
+    s[period][i] = !s[period][i];
+    saveSkin(); renderSkinSummary(); renderSkinSections(); renderDayNav();
+  }
+
+  function selectSkinDay(i) { currentSkinDay = i; renderSkincare(); }
+
+  function resetSkinDay() {
+    skinState[currentSkinDay] = { am: new Array(MORNING.length).fill(false), pm: new Array(EVENING.length).fill(false) };
+    saveSkin(); renderSkincare(); toast('Day reset');
+  }
+
+  // ── Regular Detail View ───────────────────────────────────────────────────
   function renderDetail() {
     const list = getList(currentId); if (!list) return;
-    const { done, total } = getProgress(list);
+    const all = list.sections ? list.sections.flatMap(s => s.items) : (list.items || []);
+    const done = all.filter(i => i.checked).length, total = all.length;
     const left = total - done, pct = total ? Math.round((done/total)*100) : 0, isDone = done===total&&total>0;
     document.getElementById('detail-title').textContent = list.title;
     document.getElementById('detail-subtitle').textContent = list.date + ' · ' + total + ' items';
     document.getElementById('detail-count').textContent = left;
-    document.getElementById('detail-left-label').textContent = left===1 ? 'item left' : 'items left';
+    document.getElementById('detail-left-label').textContent = left===1?'item left':'items left';
     document.getElementById('detail-done-label').textContent = done + ' completed';
     document.getElementById('detail-bar').style.width = pct + '%';
-    document.getElementById('detail-bar').className = 'bar-fill' + (isDone?' done':'');
-    document.getElementById('all-done-msg').className = 'all-done' + (isDone?' visible':'');
-
+    document.getElementById('detail-bar').className = 'bar-fill'+(isDone?' done':'');
+    document.getElementById('all-done-msg').className = 'all-done'+(isDone?' visible':'');
     const sectionsEl = document.getElementById('detail-sections');
     if (list.sections) {
       sectionsEl.innerHTML = list.sections.map((sec, si) => `
         <div class="section">
-          <div class="section-header">
-            <span class="section-icon">${sec.icon||'•'}</span>
-            <span class="section-title">${escHtml(sec.title)}</span>
-            <div class="section-line"></div>
-          </div>
-          ${sec.items.map((item, ii) => `
+          <div class="section-header"><span class="section-icon">${sec.icon||'•'}</span><span class="section-title">${escHtml(sec.title)}</span><div class="section-line"></div></div>
+          ${sec.items.map((item,ii) => `
             <div class="step-card${item.checked?' checked':''}" onclick="toggleSec(${si},${ii})">
               <div class="step-num">${item.checked?'✓':ii+1}</div>
-              <div>
-                <div class="step-name">${escHtml(item.text)}</div>
-                ${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}
-              </div>
+              <div><div class="step-name">${escHtml(item.text)}</div>${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}</div>
             </div>`).join('')}
         </div>`).join('');
     } else {
@@ -313,13 +441,13 @@
     }
   }
 
-  function toggleSec(si, ii) { const l=getList(currentId); l.sections[si].items[ii].checked=!l.sections[si].items[ii].checked; save(); renderDetail(); }
-  function toggleItem(i) { const l=getList(currentId); l.items[i].checked=!l.items[i].checked; save(); renderDetail(); }
+  function toggleSec(si,ii) { const l=getList(currentId); l.sections[si].items[ii].checked=!l.sections[si].items[ii].checked; saveLists(); renderDetail(); }
+  function toggleItem(i) { const l=getList(currentId); l.items[i].checked=!l.items[i].checked; saveLists(); renderDetail(); }
   function resetList() {
     const l=getList(currentId);
-    if (l.sections) l.sections.forEach(s=>s.items.forEach(it=>it.checked=false));
+    if(l.sections) l.sections.forEach(s=>s.items.forEach(it=>it.checked=false));
     else (l.items||[]).forEach(it=>it.checked=false);
-    save(); renderDetail(); toast('Checklist reset');
+    saveLists(); renderDetail(); toast('Checklist reset');
   }
 
   // ── File Upload ───────────────────────────────────────────────────────────
@@ -329,125 +457,61 @@
     reader.onload = function(e) {
       const content = e.target.result;
       const ext = file.name.split('.').pop().toLowerCase();
-      let items = [];
-      let title = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g,' ');
-
-      if (ext === 'html' || ext === 'htm') {
-        // Parse HTML: try to extract list items, then fall back to text content
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(content, 'text/html');
-
-        // Try to grab title from <title> tag
+      let items = [], title = file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
+      if (ext==='html'||ext==='htm') {
+        const parser = new DOMParser(), doc = parser.parseFromString(content,'text/html');
         const titleTag = doc.querySelector('title');
-        if (titleTag && titleTag.textContent.trim()) title = titleTag.textContent.trim();
-
-        // Extract checklist items from common patterns used in Claude-generated checklists
-        // 1. Look for step-name / item-name divs
-        const stepNames = doc.querySelectorAll('.step-name, .item-label, .item-name, .step-label');
-        if (stepNames.length > 0) {
-          items = Array.from(stepNames).map(el => ({ text: el.textContent.trim(), checked: false })).filter(i => i.text);
+        if (titleTag&&titleTag.textContent.trim()) title = titleTag.textContent.trim();
+        const stepNames = doc.querySelectorAll('.step-name,.item-label,.item-name,.step-label');
+        if (stepNames.length>0) items=Array.from(stepNames).map(el=>({text:el.textContent.trim(),checked:false})).filter(i=>i.text);
+        if (!items.length) { const lis=doc.querySelectorAll('li'); if(lis.length>0) items=Array.from(lis).map(el=>({text:el.textContent.trim(),checked:false})).filter(i=>i.text); }
+        if (!items.length) items=parseLines(doc.body?doc.body.textContent:content);
+        const sections=doc.querySelectorAll('.section');
+        if (sections.length>0) {
+          const built=Array.from(sections).map(sec=>{
+            const st=sec.querySelector('.section-title'), si=sec.querySelector('.section-icon'), steps=sec.querySelectorAll('.step-name,.item-label'), notes=sec.querySelectorAll('.step-product,.step-note,.step-tip');
+            return { title:st?st.textContent.trim():'Steps', icon:si?si.textContent.trim():'•', items:Array.from(steps).map((s,i)=>({text:s.textContent.trim(),note:notes[i]?notes[i].textContent.trim():'',checked:false})).filter(i=>i.text) };
+          }).filter(s=>s.items.length>0);
+          if (built.length>0) { addList({title,sections:built}); input.value=''; return; }
         }
-
-        // 2. Look for li elements
-        if (!items.length) {
-          const lis = doc.querySelectorAll('li');
-          if (lis.length > 0) items = Array.from(lis).map(el => ({ text: el.textContent.trim(), checked: false })).filter(i => i.text);
-        }
-
-        // 3. Fall back to extracting visible text lines
-        if (!items.length) {
-          const body = doc.body ? doc.body.innerText || doc.body.textContent : content;
-          items = parseLines(body);
-        }
-
-        // Special case: detect Claude skincare-style HTML with sections
-        const amSection = doc.querySelector('.section');
-        if (amSection) {
-          // Try to rebuild sections
-          const sections = doc.querySelectorAll('.section');
-          if (sections.length > 0) {
-            const builtSections = Array.from(sections).map(sec => {
-              const secTitle = sec.querySelector('.section-title');
-              const secIcon = sec.querySelector('.section-icon');
-              const steps = sec.querySelectorAll('.step-name, .item-label');
-              const notes = sec.querySelectorAll('.step-product, .step-note, .step-tip');
-              return {
-                title: secTitle ? secTitle.textContent.trim() : 'Steps',
-                icon: secIcon ? secIcon.textContent.trim() : '•',
-                items: Array.from(steps).map((s, i) => ({
-                  text: s.textContent.trim(),
-                  note: notes[i] ? notes[i].textContent.trim() : '',
-                  checked: false
-                })).filter(i => i.text)
-              };
-            }).filter(s => s.items.length > 0);
-
-            if (builtSections.length > 0) {
-              addList({ title, sections: builtSections }); input.value=''; return;
-            }
-          }
-        }
-      } else {
-        // Plain text
-        items = parseLines(content);
-      }
-
+      } else { items=parseLines(content); }
       if (!items.length) { toast('Could not find any items in this file'); input.value=''; return; }
-      addList({ title, items });
-      input.value = '';
+      addList({title,items}); input.value='';
     };
     reader.readAsText(file);
   }
 
-  // ── Paste Import ──────────────────────────────────────────────────────────
   function importPasted() {
-    const title = document.getElementById('import-title').value.trim();
-    const text = document.getElementById('import-text').value.trim();
+    const title=document.getElementById('import-title').value.trim(), text=document.getElementById('import-text').value.trim();
     if (!title) { toast('Please add a title'); return; }
     if (!text) { toast('Please paste some checklist text'); return; }
-    const items = parseLines(text);
+    const items=parseLines(text);
     if (!items.length) { toast('Could not find any items'); return; }
-    addList({ title, items });
-    document.getElementById('import-title').value = '';
-    document.getElementById('import-text').value = '';
+    addList({title,items});
+    document.getElementById('import-title').value=''; document.getElementById('import-text').value='';
   }
 
   function addList(data) {
-    const date = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    lists.push({ id: 'list_'+Date.now(), date, ...data });
-    save();
-    const count = data.sections ? data.sections.flatMap(s=>s.items).length : (data.items||[]).length;
-    toast('Saved ' + count + ' items!');
-    setTimeout(() => showTab('lists'), 700);
+    const date=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    lists.push({id:'list_'+Date.now(),date,...data}); saveLists();
+    const count=data.sections?data.sections.flatMap(s=>s.items).length:(data.items||[]).length;
+    toast('Saved '+count+' items!'); setTimeout(()=>showTab('lists'),700);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   function parseLines(text) {
     return text.split('\n').map(l=>l.trim()).filter(l=>l.length>0).map(l=>{
-      l=l.replace(/^-\s*\[[ xX]\]\s*/,'').replace(/^\[[ xX]\]\s*/,'')
-         .replace(/^[\-\*\•]\s+/,'').replace(/^\d+[\.\)]\s+/,'').replace(/^#+\s*/,'');
+      l=l.replace(/^-\s*\[[ xX]\]\s*/,'').replace(/^\[[ xX]\]\s*/,'').replace(/^[\-\*\•]\s+/,'').replace(/^\d+[\.\)]\s+/,'').replace(/^#+\s*/,'');
       return l.trim();
     }).filter(l=>l.length>0&&l.length<400).map(text=>({text,checked:false}));
   }
 
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function toast(msg) { const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2400); }
 
-  function toast(msg) {
-    const el=document.getElementById('toast');
-    el.textContent=msg; el.classList.add('show');
-    setTimeout(()=>el.classList.remove('show'),2400);
-  }
-
-  // Drag and drop support
-  const zone = document.getElementById('uploadZone');
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0]; if (!file) return;
-    const fakeInput = { files: [file], value: '' };
-    handleFileUpload(fakeInput);
-  });
+  const zone=document.getElementById('uploadZone');
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(!f)return;handleFileUpload({files:[f],value:''});});
 
   renderLists();
 </script>
