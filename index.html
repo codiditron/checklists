@@ -73,6 +73,7 @@
   .progress-wrap .bar-bg { height: 3px; background: var(--blush); border-radius: 2px; overflow: hidden; margin-top: 6px; }
   .progress-wrap .bar-fill { height: 100%; background: linear-gradient(90deg, var(--rose), var(--blush)); border-radius: 2px; transition: width 0.4s; }
   .progress-wrap .bar-fill.done { background: linear-gradient(90deg, var(--green), var(--mint)); }
+
   .section { padding: 16px 16px 0; }
   .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .section-icon { font-size: 15px; }
@@ -157,7 +158,7 @@
   <button class="import-btn" onclick="importPasted()">Save Checklist ✦</button>
 </div>
 
-<!-- DETAIL VIEW (regular lists) -->
+<!-- REGULAR DETAIL VIEW -->
 <div id="view-detail" class="hidden">
   <div class="detail-header">
     <button class="back-btn" onclick="showTab('lists')">&#8592;</button>
@@ -183,7 +184,7 @@
   <button class="reset-btn" onclick="resetList()">↺ Reset checklist</button>
 </div>
 
-<!-- SKINCARE DETAIL VIEW (with day tracker) -->
+<!-- SKINCARE DETAIL VIEW -->
 <div id="view-skincare" class="hidden">
   <div class="detail-header">
     <button class="back-btn" onclick="showTab('lists')">&#8592;</button>
@@ -193,12 +194,12 @@
     </div>
   </div>
   <div class="day-nav-wrap">
-    <div class="day-nav" id="dayNav"></div>
+    <div class="day-nav" id="skinDayNav"></div>
   </div>
   <div class="summary-bar">
     <div class="count" id="skin-count">0</div>
     <div class="progress-wrap">
-      <div class="s-label" id="skin-left-label">items left</div>
+      <div class="s-label" id="skin-left-label">steps left</div>
       <div class="s-done" id="skin-done-label"></div>
       <div class="bar-bg"><div class="bar-fill" id="skin-bar" style="width:0%"></div></div>
     </div>
@@ -212,13 +213,43 @@
   <button class="reset-btn" onclick="resetSkinDay()">↺ Reset today</button>
 </div>
 
+<!-- DAILY BLUEPRINT DETAIL VIEW -->
+<div id="view-daily" class="hidden">
+  <div class="detail-header">
+    <button class="back-btn" onclick="showTab('lists')">&#8592;</button>
+    <div class="detail-title-wrap">
+      <div class="detail-title">Your Daily Blueprint</div>
+      <div class="detail-subtitle" id="daily-subtitle"></div>
+    </div>
+  </div>
+  <div class="day-nav-wrap">
+    <div class="day-nav" id="dailyDayNav"></div>
+  </div>
+  <div class="summary-bar">
+    <div class="count" id="daily-count">0</div>
+    <div class="progress-wrap">
+      <div class="s-label" id="daily-left-label">items left</div>
+      <div class="s-done" id="daily-done-label"></div>
+      <div class="bar-bg"><div class="bar-fill" id="daily-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div id="daily-sections"></div>
+  <div class="all-done" id="daily-done-msg">
+    <div class="emoji">🎉</div>
+    <h3>You crushed today!</h3>
+    <p>That's a full day well lived — see you tomorrow.</p>
+  </div>
+  <button class="reset-btn" onclick="resetDailyDay()">↺ Reset today</button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
   const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const SKINCARE_ID = 'preloaded_skincare';
+  const todayIdx = (new Date().getDay() + 6) % 7;
 
-  const MORNING = [
+  // ── SKINCARE DATA ─────────────────────────────────────────────────────────
+  const MORNING_SKIN = [
     { text: 'Rinse with lukewarm water', note: 'No cleanser in AM — hot water = eczema trigger ⚠️' },
     { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in with hands, don\'t wipe' },
     { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — apply to slightly damp skin' },
@@ -226,42 +257,92 @@
     { text: 'Zero-Cast Sunscreen SPF 50', note: 'ANUA — apply generously!' },
     { text: 'Yerba Mate Eye Gel', note: 'Good Molecules — pat gently with ring finger' },
   ];
-  const EVENING = [
+  const EVENING_SKIN = [
     { text: 'Clarify & Cleanse Bar', note: 'Good Molecules — lukewarm water, no scrubbing' },
     { text: 'Snail Mucin Cleanser (if wore SPF/makeup)', note: 'COSRX — 2nd cleanse only if needed' },
     { text: 'Niacinamide Brightening Toner', note: 'Good Molecules — pat in gently' },
     { text: 'Phyto Mucin Glow Serum', note: 'BYOMA — pat on damp skin' },
     { text: 'Omega Water Cream', note: 'The INKEY List — be generous at night, skin repairs while you sleep' },
   ];
-  const TOTAL = MORNING.length + EVENING.length;
+  const SKIN_TOTAL = MORNING_SKIN.length + EVENING_SKIN.length;
 
-  // skinState: { 0: { am: [bool,...], pm: [bool,...] }, ... } keyed by day index 0=Mon
+  // ── DAILY BLUEPRINT DATA ──────────────────────────────────────────────────
+  const DAILY_SECTIONS = [
+    { title: 'Morning', icon: '🌅', items: [
+      { text: 'Wake up at 6:00am', note: 'No snooze — feet on the floor' },
+      { text: 'Drink a full glass of water', note: 'Before anything else' },
+      { text: 'No phone for first 15 minutes', note: 'Let your brain wake up naturally' },
+      { text: 'Work out (muscle / movement)', note: 'Even 20–30 min counts — consistency > intensity' },
+      { text: 'Shower & get ready', note: 'Leave yourself enough time to feel good' },
+      { text: 'Make & eat breakfast at home', note: 'Real food — protein helps with energy all day' },
+      { text: 'Pack lunch or prep food for the day', note: 'Avoid skipping meals or eating junk on the go' },
+      { text: 'Leave for commute by 7:15am', note: 'Give yourself buffer — rushing kills the vibe' },
+    ]},
+    { title: 'Morning Skincare', icon: '✨', items: [
+      { text: 'Cleanse face', note: 'Gentle wash — don\'t strip your skin' },
+      { text: 'Apply toner / essence', note: 'Hydration prep step' },
+      { text: 'Serum (vitamin C or treatment)', note: 'Morning is great for antioxidant protection' },
+      { text: 'Moisturizer', note: 'Lock in hydration before SPF' },
+      { text: 'Sunscreen (SPF 30+)', note: 'Non-negotiable — even on cloudy days' },
+    ]},
+    { title: 'Work Day', icon: '💼', items: [
+      { text: 'Write down 3 priorities for today', note: 'Do this first thing — keeps you focused' },
+      { text: 'Eat lunch (don\'t skip!)', note: 'Step outside for even 10 minutes' },
+      { text: 'Drink water throughout the day', note: 'Keep a bottle at your desk' },
+      { text: 'Take a short walk or stretch break', note: 'Even 5 min helps reset your focus' },
+    ]},
+    { title: 'After Work / Classes', icon: '📚', items: [
+      { text: 'Decompress during commute home', note: 'Music, podcast, or silence — not doomscrolling' },
+      { text: 'Change clothes when you get home', note: 'Signals your brain to shift out of work mode' },
+      { text: 'Eat a proper dinner', note: 'Cook at home when possible — even something simple' },
+      { text: 'Attend class & stay present', note: 'You\'re investing in yourself — show up fully' },
+      { text: 'Avoid heavy snacking after class', note: 'Light snack is fine if needed' },
+    ]},
+    { title: 'Night Skincare', icon: '🧴', items: [
+      { text: 'Remove makeup / sunscreen', note: 'Micellar water or cleansing balm first if needed' },
+      { text: 'Double cleanse or wash face', note: 'Get everything off before bed' },
+      { text: 'Toner / essence', note: 'Rebalance and prep skin' },
+      { text: 'Treatment serum (retinol, niacinamide, etc.)', note: 'Night is best for actives' },
+      { text: 'Eye cream (if using)', note: 'Pat gently, don\'t rub' },
+      { text: 'Moisturizer / night cream', note: 'Skin repairs itself overnight — give it the good stuff' },
+    ]},
+    { title: 'Night Routine', icon: '🌙', items: [
+      { text: 'Journal for 5–10 minutes', note: 'What happened today? How do you feel? What\'s tomorrow?' },
+      { text: 'Plan tomorrow (top 3 tasks)', note: 'Takes 5 min, saves you mental energy in the morning' },
+      { text: 'Prep anything for tomorrow', note: 'Outfit, bag, food — future you will thank you' },
+      { text: 'Wind down screens 30 min before bed', note: 'Dim lights, calm music, easy content only' },
+      { text: 'Go to bed at consistent time', note: 'Aim for 7–8 hours — sleep is your #1 recovery tool' },
+    ]},
+  ];
+  const DAILY_TOTAL = DAILY_SECTIONS.reduce((a, s) => a + s.items.length, 0);
+
+  // ── STATE ─────────────────────────────────────────────────────────────────
   let skinState = JSON.parse(localStorage.getItem('skinState_v1') || '{}');
-  function getSkinDay(d) {
-    if (!skinState[d]) skinState[d] = { am: new Array(MORNING.length).fill(false), pm: new Array(EVENING.length).fill(false) };
-    return skinState[d];
-  }
+  let dailyState = JSON.parse(localStorage.getItem('dailyState_v1') || '{}');
+  let lists = JSON.parse(localStorage.getItem('checklists_v4') || '[]');
+
+  function getSkinDay(d) { if (!skinState[d]) skinState[d] = { am: new Array(MORNING_SKIN.length).fill(false), pm: new Array(EVENING_SKIN.length).fill(false) }; return skinState[d]; }
   function saveSkin() { localStorage.setItem('skinState_v1', JSON.stringify(skinState)); }
 
-  // Today's day index (0=Mon)
-  const todayIdx = (new Date().getDay() + 6) % 7;
-  let currentSkinDay = todayIdx;
-
-  // ── Regular lists ─────────────────────────────────────────────────────────
-  let lists = JSON.parse(localStorage.getItem('checklists_v4') || '[]');
-  // Ensure skincare placeholder in lists for card display
-  if (!lists.find(l => l.id === SKINCARE_ID)) {
-    lists.unshift({ id: SKINCARE_ID, title: 'My Skincare Routine', date: 'Pre-loaded', preloaded: true, skincare: true });
-    saveLists();
+  function getDailyDay(d) {
+    if (!dailyState[d]) dailyState[d] = DAILY_SECTIONS.map(s => new Array(s.items.length).fill(false));
+    return dailyState[d];
   }
-  let currentId = null;
+  function saveDaily() { localStorage.setItem('dailyState_v1', JSON.stringify(dailyState)); }
+
+  const SKINCARE_ID = 'preloaded_skincare';
+  const DAILY_ID = 'preloaded_daily';
+  if (!lists.find(l => l.id === SKINCARE_ID)) { lists.unshift({ id: SKINCARE_ID, title: 'My Skincare Routine', date: 'Pre-loaded', preloaded: true, skincare: true }); saveLists(); }
+  if (!lists.find(l => l.id === DAILY_ID)) { lists.splice(1, 0, { id: DAILY_ID, title: 'Your Daily Blueprint', date: 'Pre-loaded', preloaded: true, daily: true }); saveLists(); }
+
+  let currentId = null, currentSkinDay = todayIdx, currentDailyDay = todayIdx;
 
   function saveLists() { localStorage.setItem('checklists_v4', JSON.stringify(lists)); }
   function getList(id) { return lists.find(l => l.id === id); }
 
-  // ── Navigation ────────────────────────────────────────────────────────────
+  // ── NAVIGATION ────────────────────────────────────────────────────────────
   function showTab(tab) {
-    ['view-lists','view-import','view-detail','view-skincare'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    ['view-lists','view-import','view-detail','view-skincare','view-daily'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('main-header').classList.remove('hidden');
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     if (tab === 'lists') {
@@ -279,24 +360,20 @@
       document.getElementById('view-skincare').classList.remove('hidden');
       document.getElementById('main-header').classList.add('hidden');
       renderSkincare();
+    } else if (tab === 'daily') {
+      document.getElementById('view-daily').classList.remove('hidden');
+      document.getElementById('main-header').classList.add('hidden');
+      renderDaily();
     }
   }
 
-  // ── List View ─────────────────────────────────────────────────────────────
-  function getSkinProgress() {
-    let done = 0;
-    for (let d = 0; d < 7; d++) { const s = getSkinDay(d); done += s.am.filter(Boolean).length + s.pm.filter(Boolean).length; }
-    return { done, total: TOTAL * 7 };
-  }
-
-  function getTodaySkinProgress() {
-    const s = getSkinDay(todayIdx);
-    const done = s.am.filter(Boolean).length + s.pm.filter(Boolean).length;
-    return { done, total: TOTAL };
-  }
+  // ── LIST VIEW ─────────────────────────────────────────────────────────────
+  function getTodaySkinProg() { const s = getSkinDay(todayIdx); return { done: s.am.filter(Boolean).length + s.pm.filter(Boolean).length, total: SKIN_TOTAL }; }
+  function getTodayDailyProg() { const d = getDailyDay(todayIdx); return { done: d.reduce((a, s) => a + s.filter(Boolean).length, 0), total: DAILY_TOTAL }; }
 
   function getProgress(list) {
-    if (list.skincare) return getTodaySkinProgress();
+    if (list.skincare) return getTodaySkinProg();
+    if (list.daily) return getTodayDailyProg();
     const all = list.sections ? list.sections.flatMap(s => s.items) : (list.items || []);
     return { done: all.filter(i => i.checked).length, total: all.length };
   }
@@ -306,19 +383,16 @@
     if (!lists.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🌿</div><h2>No lists yet</h2><p>Tap <strong>+ Add Checklist</strong> to get started.</p></div>`; return; }
     el.innerHTML = lists.map(list => {
       const { done, total } = getProgress(list);
-      const pct = total ? Math.round((done/total)*100) : 0, isDone = done===total && total>0;
-      const subtitle = list.skincare ? `Today: ${done} of ${total} steps done` : `${done} of ${total} done${isDone?' ✓':''}`;
+      const pct = total ? Math.round((done/total)*100) : 0, isDone = done===total&&total>0;
+      const sub = (list.skincare||list.daily) ? `Today: ${done} of ${total} done` : `${done} of ${total} done${isDone?' ✓':''}`;
       return `<div class="checklist-card${isDone?' complete':''}" onclick="openList('${list.id}')">
         <div class="card-top">
-          <div>
-            <div class="card-title">${escHtml(list.title)}</div>
-            ${list.preloaded ? '<span class="card-badge">✦ pre-loaded</span>' : ''}
-          </div>
-          ${list.preloaded ? '' : `<button class="delete-btn" onclick="event.stopPropagation();deleteList('${list.id}')">&#10005;</button>`}
+          <div><div class="card-title">${escHtml(list.title)}</div>${list.preloaded?'<span class="card-badge">✦ pre-loaded</span>':''}</div>
+          ${list.preloaded?'':'<button class="delete-btn" onclick="event.stopPropagation();deleteList(\''+list.id+'\')">&#10005;</button>'}
         </div>
         <div class="card-date">${list.date}</div>
         <div class="card-progress">
-          <div class="progress-text">${subtitle}</div>
+          <div class="progress-text">${sub}</div>
           <div class="progress-bar-bg"><div class="progress-bar-fill${isDone?' done':''}" style="width:${pct}%"></div></div>
         </div>
       </div>`;
@@ -327,117 +401,122 @@
 
   function openList(id) {
     currentId = id;
-    const list = getList(id);
-    if (list && list.skincare) { showTab('skincare'); } else { showTab('detail'); }
+    const l = getList(id);
+    if (l.skincare) showTab('skincare');
+    else if (l.daily) showTab('daily');
+    else showTab('detail');
   }
 
-  function deleteList(id) {
-    if (!confirm('Delete "' + getList(id).title + '"?')) return;
-    lists = lists.filter(l => l.id !== id); saveLists(); renderLists(); toast('Deleted');
-  }
+  function deleteList(id) { if (!confirm('Delete "'+getList(id).title+'"?')) return; lists=lists.filter(l=>l.id!==id); saveLists(); renderLists(); toast('Deleted'); }
 
-  // ── Skincare Day Tracker ──────────────────────────────────────────────────
-  function renderSkincare() {
-    renderDayNav();
-    renderSkinSummary();
-    renderSkinSections();
-  }
+  // ── SKINCARE VIEW ─────────────────────────────────────────────────────────
+  function renderSkincare() { renderSkinDayNav(); renderSkinSummary(); renderSkinSections(); }
 
-  function renderDayNav() {
-    const nav = document.getElementById('dayNav');
-    nav.innerHTML = DAYS.map((d, i) => {
-      const s = getSkinDay(i);
-      const done = s.am.filter(Boolean).length + s.pm.filter(Boolean).length;
-      const isComplete = done === TOTAL;
-      const isActive = i === currentSkinDay;
-      const isToday = i === todayIdx;
-      return `<button class="day-btn${isActive?' active':''}${isComplete?' complete':''}" onclick="selectSkinDay(${i})">
+  function renderSkinDayNav() {
+    document.getElementById('skinDayNav').innerHTML = DAYS.map((d,i) => {
+      const s=getSkinDay(i), done=s.am.filter(Boolean).length+s.pm.filter(Boolean).length, complete=done===SKIN_TOTAL, active=i===currentSkinDay;
+      return `<button class="day-btn${active?' active':''}${complete?' complete':''}" onclick="selectSkinDay(${i})">
         <span class="day-label">${d}</span>
-        ${isToday && !isActive ? '<span style="font-size:7px;color:var(--rose)">●</span>' : '<span class="day-dot"></span>'}
+        ${i===todayIdx&&!active?'<span style="font-size:7px;color:var(--rose)">●</span>':'<span class="day-dot"></span>'}
       </button>`;
     }).join('');
-    document.getElementById('skin-subtitle').textContent = DAYS[currentSkinDay] + (currentSkinDay === todayIdx ? ' — Today' : '');
+    document.getElementById('skin-subtitle').textContent = DAYS[currentSkinDay]+(currentSkinDay===todayIdx?' — Today':'');
   }
 
   function renderSkinSummary() {
-    const s = getSkinDay(currentSkinDay);
-    const done = s.am.filter(Boolean).length + s.pm.filter(Boolean).length;
-    const left = TOTAL - done, pct = Math.round((done/TOTAL)*100), isDone = done === TOTAL;
-    document.getElementById('skin-count').textContent = left;
-    document.getElementById('skin-left-label').textContent = left === 1 ? 'step left' : 'steps left';
-    document.getElementById('skin-done-label').textContent = done + ' completed';
-    document.getElementById('skin-bar').style.width = pct + '%';
-    document.getElementById('skin-bar').className = 'bar-fill' + (isDone ? ' done' : '');
-    document.getElementById('skin-done-msg').className = 'all-done' + (isDone ? ' visible' : '');
+    const s=getSkinDay(currentSkinDay), done=s.am.filter(Boolean).length+s.pm.filter(Boolean).length, left=SKIN_TOTAL-done, pct=Math.round((done/SKIN_TOTAL)*100), isDone=done===SKIN_TOTAL;
+    document.getElementById('skin-count').textContent=left;
+    document.getElementById('skin-left-label').textContent=left===1?'step left':'steps left';
+    document.getElementById('skin-done-label').textContent=done+' completed';
+    document.getElementById('skin-bar').style.width=pct+'%';
+    document.getElementById('skin-bar').className='bar-fill'+(isDone?' done':'');
+    document.getElementById('skin-done-msg').className='all-done'+(isDone?' visible':'');
   }
 
   function renderSkinSections() {
-    const s = getSkinDay(currentSkinDay);
-    document.getElementById('skin-sections').innerHTML = [
-      { title: 'Morning', icon: '🌅', items: MORNING, state: s.am, period: 'am' },
-      { title: 'Evening', icon: '🌙', items: EVENING, state: s.pm, period: 'pm' }
-    ].map(sec => `
+    const s=getSkinDay(currentSkinDay);
+    document.getElementById('skin-sections').innerHTML=[
+      {title:'Morning',icon:'🌅',items:MORNING_SKIN,state:s.am,period:'am'},
+      {title:'Evening',icon:'🌙',items:EVENING_SKIN,state:s.pm,period:'pm'}
+    ].map(sec=>`<div class="section">
+      <div class="section-header"><span class="section-icon">${sec.icon}</span><span class="section-title">${sec.title}</span><div class="section-line"></div></div>
+      ${sec.items.map((item,i)=>`<div class="step-card${sec.state[i]?' checked':''}" onclick="toggleSkinItem('${sec.period}',${i})">
+        <div class="step-num">${sec.state[i]?'✓':i+1}</div>
+        <div><div class="step-name">${escHtml(item.text)}</div>${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}</div>
+      </div>`).join('')}
+    </div>`).join('');
+  }
+
+  function toggleSkinItem(period,i) { const s=getSkinDay(currentSkinDay); s[period][i]=!s[period][i]; saveSkin(); renderSkinSummary(); renderSkinSections(); renderSkinDayNav(); }
+  function selectSkinDay(i) { currentSkinDay=i; renderSkincare(); }
+  function resetSkinDay() { skinState[currentSkinDay]={am:new Array(MORNING_SKIN.length).fill(false),pm:new Array(EVENING_SKIN.length).fill(false)}; saveSkin(); renderSkincare(); toast('Day reset'); }
+
+  // ── DAILY BLUEPRINT VIEW ──────────────────────────────────────────────────
+  function renderDaily() { renderDailyDayNav(); renderDailySummary(); renderDailySections(); }
+
+  function renderDailyDayNav() {
+    document.getElementById('dailyDayNav').innerHTML = DAYS.map((d,i) => {
+      const state=getDailyDay(i), done=state.reduce((a,s)=>a+s.filter(Boolean).length,0), complete=done===DAILY_TOTAL, active=i===currentDailyDay;
+      return `<button class="day-btn${active?' active':''}${complete?' complete':''}" onclick="selectDailyDay(${i})">
+        <span class="day-label">${d}</span>
+        ${i===todayIdx&&!active?'<span style="font-size:7px;color:var(--rose)">●</span>':'<span class="day-dot"></span>'}
+      </button>`;
+    }).join('');
+    document.getElementById('daily-subtitle').textContent = DAYS[currentDailyDay]+(currentDailyDay===todayIdx?' — Today':'');
+  }
+
+  function renderDailySummary() {
+    const state=getDailyDay(currentDailyDay), done=state.reduce((a,s)=>a+s.filter(Boolean).length,0), left=DAILY_TOTAL-done, pct=Math.round((done/DAILY_TOTAL)*100), isDone=done===DAILY_TOTAL;
+    document.getElementById('daily-count').textContent=left;
+    document.getElementById('daily-left-label').textContent=left===1?'item left':'items left';
+    document.getElementById('daily-done-label').textContent=done+' completed';
+    document.getElementById('daily-bar').style.width=pct+'%';
+    document.getElementById('daily-bar').className='bar-fill'+(isDone?' done':'');
+    document.getElementById('daily-done-msg').className='all-done'+(isDone?' visible':'');
+  }
+
+  function renderDailySections() {
+    const state=getDailyDay(currentDailyDay);
+    document.getElementById('daily-sections').innerHTML=DAILY_SECTIONS.map((sec,si)=>`
       <div class="section">
-        <div class="section-header">
-          <span class="section-icon">${sec.icon}</span>
-          <span class="section-title">${sec.title}</span>
-          <div class="section-line"></div>
-        </div>
-        ${sec.items.map((item, i) => `
-          <div class="step-card${sec.state[i]?' checked':''}" onclick="toggleSkinItem('${sec.period}',${i})">
-            <div class="step-num">${sec.state[i]?'✓':i+1}</div>
-            <div>
-              <div class="step-name">${escHtml(item.text)}</div>
-              ${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}
-            </div>
-          </div>`).join('')}
+        <div class="section-header"><span class="section-icon">${sec.icon}</span><span class="section-title">${escHtml(sec.title)}</span><div class="section-line"></div></div>
+        ${sec.items.map((item,ii)=>`<div class="step-card${state[si][ii]?' checked':''}" onclick="toggleDailyItem(${si},${ii})">
+          <div class="step-num">${state[si][ii]?'✓':ii+1}</div>
+          <div><div class="step-name">${escHtml(item.text)}</div>${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}</div>
+        </div>`).join('')}
       </div>`).join('');
   }
 
-  function toggleSkinItem(period, i) {
-    const s = getSkinDay(currentSkinDay);
-    s[period][i] = !s[period][i];
-    saveSkin(); renderSkinSummary(); renderSkinSections(); renderDayNav();
-  }
+  function toggleDailyItem(si,ii) { const s=getDailyDay(currentDailyDay); s[si][ii]=!s[si][ii]; saveDaily(); renderDailySummary(); renderDailySections(); renderDailyDayNav(); }
+  function selectDailyDay(i) { currentDailyDay=i; renderDaily(); }
+  function resetDailyDay() { dailyState[currentDailyDay]=DAILY_SECTIONS.map(s=>new Array(s.items.length).fill(false)); saveDaily(); renderDaily(); toast('Day reset'); }
 
-  function selectSkinDay(i) { currentSkinDay = i; renderSkincare(); }
-
-  function resetSkinDay() {
-    skinState[currentSkinDay] = { am: new Array(MORNING.length).fill(false), pm: new Array(EVENING.length).fill(false) };
-    saveSkin(); renderSkincare(); toast('Day reset');
-  }
-
-  // ── Regular Detail View ───────────────────────────────────────────────────
+  // ── REGULAR DETAIL VIEW ───────────────────────────────────────────────────
   function renderDetail() {
-    const list = getList(currentId); if (!list) return;
-    const all = list.sections ? list.sections.flatMap(s => s.items) : (list.items || []);
-    const done = all.filter(i => i.checked).length, total = all.length;
-    const left = total - done, pct = total ? Math.round((done/total)*100) : 0, isDone = done===total&&total>0;
-    document.getElementById('detail-title').textContent = list.title;
-    document.getElementById('detail-subtitle').textContent = list.date + ' · ' + total + ' items';
-    document.getElementById('detail-count').textContent = left;
-    document.getElementById('detail-left-label').textContent = left===1?'item left':'items left';
-    document.getElementById('detail-done-label').textContent = done + ' completed';
-    document.getElementById('detail-bar').style.width = pct + '%';
-    document.getElementById('detail-bar').className = 'bar-fill'+(isDone?' done':'');
-    document.getElementById('all-done-msg').className = 'all-done'+(isDone?' visible':'');
-    const sectionsEl = document.getElementById('detail-sections');
+    const list=getList(currentId); if(!list) return;
+    const all=list.sections?list.sections.flatMap(s=>s.items):(list.items||[]);
+    const done=all.filter(i=>i.checked).length, total=all.length, left=total-done, pct=total?Math.round((done/total)*100):0, isDone=done===total&&total>0;
+    document.getElementById('detail-title').textContent=list.title;
+    document.getElementById('detail-subtitle').textContent=list.date+' · '+total+' items';
+    document.getElementById('detail-count').textContent=left;
+    document.getElementById('detail-left-label').textContent=left===1?'item left':'items left';
+    document.getElementById('detail-done-label').textContent=done+' completed';
+    document.getElementById('detail-bar').style.width=pct+'%';
+    document.getElementById('detail-bar').className='bar-fill'+(isDone?' done':'');
+    document.getElementById('all-done-msg').className='all-done'+(isDone?' visible':'');
+    const sectionsEl=document.getElementById('detail-sections');
     if (list.sections) {
-      sectionsEl.innerHTML = list.sections.map((sec, si) => `
-        <div class="section">
-          <div class="section-header"><span class="section-icon">${sec.icon||'•'}</span><span class="section-title">${escHtml(sec.title)}</span><div class="section-line"></div></div>
-          ${sec.items.map((item,ii) => `
-            <div class="step-card${item.checked?' checked':''}" onclick="toggleSec(${si},${ii})">
-              <div class="step-num">${item.checked?'✓':ii+1}</div>
-              <div><div class="step-name">${escHtml(item.text)}</div>${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}</div>
-            </div>`).join('')}
-        </div>`).join('');
+      sectionsEl.innerHTML=list.sections.map((sec,si)=>`<div class="section">
+        <div class="section-header"><span class="section-icon">${sec.icon||'•'}</span><span class="section-title">${escHtml(sec.title)}</span><div class="section-line"></div></div>
+        ${sec.items.map((item,ii)=>`<div class="step-card${item.checked?' checked':''}" onclick="toggleSec(${si},${ii})">
+          <div class="step-num">${item.checked?'✓':ii+1}</div>
+          <div><div class="step-name">${escHtml(item.text)}</div>${item.note?`<div class="step-note">${escHtml(item.note)}</div>`:''}</div>
+        </div>`).join('')}
+      </div>`).join('');
     } else {
-      sectionsEl.innerHTML = `<div class="section">${(list.items||[]).map((item,i)=>`
-        <div class="step-card${item.checked?' checked':''}" onclick="toggleItem(${i})">
-          <div class="step-num">${item.checked?'✓':i+1}</div>
-          <div class="step-name">${escHtml(item.text)}</div>
-        </div>`).join('')}</div>`;
+      sectionsEl.innerHTML=`<div class="section">${(list.items||[]).map((item,i)=>`<div class="step-card${item.checked?' checked':''}" onclick="toggleItem(${i})">
+        <div class="step-num">${item.checked?'✓':i+1}</div><div class="step-name">${escHtml(item.text)}</div>
+      </div>`).join('')}</div>`;
     }
   }
 
@@ -450,32 +529,30 @@
     saveLists(); renderDetail(); toast('Checklist reset');
   }
 
-  // ── File Upload ───────────────────────────────────────────────────────────
+  // ── FILE UPLOAD ───────────────────────────────────────────────────────────
   function handleFileUpload(input) {
-    const file = input.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const content = e.target.result;
-      const ext = file.name.split('.').pop().toLowerCase();
-      let items = [], title = file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
+    const file=input.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=function(e) {
+      const content=e.target.result, ext=file.name.split('.').pop().toLowerCase();
+      let items=[], title=file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
       if (ext==='html'||ext==='htm') {
-        const parser = new DOMParser(), doc = parser.parseFromString(content,'text/html');
-        const titleTag = doc.querySelector('title');
-        if (titleTag&&titleTag.textContent.trim()) title = titleTag.textContent.trim();
-        const stepNames = doc.querySelectorAll('.step-name,.item-label,.item-name,.step-label');
-        if (stepNames.length>0) items=Array.from(stepNames).map(el=>({text:el.textContent.trim(),checked:false})).filter(i=>i.text);
-        if (!items.length) { const lis=doc.querySelectorAll('li'); if(lis.length>0) items=Array.from(lis).map(el=>({text:el.textContent.trim(),checked:false})).filter(i=>i.text); }
-        if (!items.length) items=parseLines(doc.body?doc.body.textContent:content);
+        const parser=new DOMParser(), doc=parser.parseFromString(content,'text/html');
+        const titleTag=doc.querySelector('title'); if(titleTag&&titleTag.textContent.trim()) title=titleTag.textContent.trim();
+        const stepNames=doc.querySelectorAll('.step-name,.item-label,.item-name,.step-label');
+        if(stepNames.length>0) items=Array.from(stepNames).map(el=>({text:el.textContent.trim(),checked:false})).filter(i=>i.text);
+        if(!items.length) { const lis=doc.querySelectorAll('li'); if(lis.length>0) items=Array.from(lis).map(el=>({text:el.textContent.trim(),checked:false})).filter(i=>i.text); }
+        if(!items.length) items=parseLines(doc.body?doc.body.textContent:content);
         const sections=doc.querySelectorAll('.section');
-        if (sections.length>0) {
+        if(sections.length>0) {
           const built=Array.from(sections).map(sec=>{
-            const st=sec.querySelector('.section-title'), si=sec.querySelector('.section-icon'), steps=sec.querySelectorAll('.step-name,.item-label'), notes=sec.querySelectorAll('.step-product,.step-note,.step-tip');
-            return { title:st?st.textContent.trim():'Steps', icon:si?si.textContent.trim():'•', items:Array.from(steps).map((s,i)=>({text:s.textContent.trim(),note:notes[i]?notes[i].textContent.trim():'',checked:false})).filter(i=>i.text) };
+            const st=sec.querySelector('.section-title'),si=sec.querySelector('.section-icon'),steps=sec.querySelectorAll('.step-name,.item-label'),notes=sec.querySelectorAll('.step-product,.step-note,.step-tip');
+            return {title:st?st.textContent.trim():'Steps',icon:si?si.textContent.trim():'•',items:Array.from(steps).map((s,i)=>({text:s.textContent.trim(),note:notes[i]?notes[i].textContent.trim():'',checked:false})).filter(i=>i.text)};
           }).filter(s=>s.items.length>0);
-          if (built.length>0) { addList({title,sections:built}); input.value=''; return; }
+          if(built.length>0) { addList({title,sections:built}); input.value=''; return; }
         }
       } else { items=parseLines(content); }
-      if (!items.length) { toast('Could not find any items in this file'); input.value=''; return; }
+      if(!items.length) { toast('Could not find any items in this file'); input.value=''; return; }
       addList({title,items}); input.value='';
     };
     reader.readAsText(file);
@@ -483,12 +560,10 @@
 
   function importPasted() {
     const title=document.getElementById('import-title').value.trim(), text=document.getElementById('import-text').value.trim();
-    if (!title) { toast('Please add a title'); return; }
-    if (!text) { toast('Please paste some checklist text'); return; }
-    const items=parseLines(text);
-    if (!items.length) { toast('Could not find any items'); return; }
-    addList({title,items});
-    document.getElementById('import-title').value=''; document.getElementById('import-text').value='';
+    if(!title) { toast('Please add a title'); return; }
+    if(!text) { toast('Please paste some checklist text'); return; }
+    const items=parseLines(text); if(!items.length) { toast('Could not find any items'); return; }
+    addList({title,items}); document.getElementById('import-title').value=''; document.getElementById('import-text').value='';
   }
 
   function addList(data) {
